@@ -1,0 +1,45 @@
+# Environment variables & secrets
+.env
+.env.*
+!.env.example
+
+# Node dependencies & package manifests
+node_modules/
+package.json
+package-lock.json
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+
+# Python virtual environments & cache
+venv/
+env/
+ENV/
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Logs & temp
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Operating System & IDE metadata
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
