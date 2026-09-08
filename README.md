@@ -6,6 +6,20 @@ When a user speaks while the agent is browsing or speaking, the agent immediatel
 
 ---
 
+## 🔗 Live Demo & Links
+
+| | Link |
+|---|---|
+| 🌐 **Live Frontend** | [_Coming soon — add your Vercel URL here_](#) |
+| ⚙️ **Live Backend API** | [_Coming soon — add your Render/Railway URL here_](#) |
+| 🎥 **Demo Video (4–5 min)** | [_Coming soon — add your recorded demo link here_](#) |
+| 📦 **Full Source Repo** | [github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent](https://github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent) |
+| 🖥️ **Frontend Repo** | [github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent-Frontend](https://github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent-Frontend) |
+| 🔧 **Backend Repo** | [github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent-Backend](https://github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent-Backend) |
+
+---
+
+
 ## 1. Setup Instructions
 
 ### Prerequisites
