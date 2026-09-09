@@ -3,10 +3,8 @@
 .env.*
 !.env.example
 
-# Node dependencies & package manifests
+# Node dependencies
 node_modules/
-package.json
-package-lock.json
 
 # Build outputs
 dist/
