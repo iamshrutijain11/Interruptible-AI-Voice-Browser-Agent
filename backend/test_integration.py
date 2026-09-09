@@ -23,6 +23,9 @@ if sys.platform == "win32":
     except Exception:
         pass
 
+from dotenv import load_dotenv
+load_dotenv()
+
 from browser.browser import browser_manager
 from task_manager import TaskManager
 

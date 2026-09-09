@@ -41,7 +41,10 @@ logger = logging.getLogger("main")
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await browser_manager.start()
+    try:
+        await browser_manager.start()
+    except Exception as e:
+        logger.warning(f"Browser startup in lifespan failed ({e}); will lazy-load on first search.")
     yield
     await browser_manager.shutdown()
 
@@ -55,6 +58,14 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.get("/")
+@app.get("/health")
+async def health_check():
+    """Healthcheck endpoint for Render / cloud deployment monitors."""
+    return {"status": "ok", "service": "Interruptible AI Voice Browser Agent"}
+
 
 
 # ------------------------------------------------------------------------
@@ -96,6 +107,11 @@ async def voice_command(file: UploadFile = File(...)):
     Full pipeline entry point via file upload (used by the frontend's
     recorder, and testable directly with curl). Transcribes the audio
     (Person 1), then runs it through the central task manager end to end.
+
+    Returns:
+        transcript: the transcribed text
+        language:   ISO 639-1 code detected by STT (e.g. "en", "hi")
+        result:     the task manager pipeline result
     """
     content = await file.read()
     if not content:
@@ -103,12 +119,15 @@ async def voice_command(file: UploadFile = File(...)):
 
     voice_manager.start_transcribing()
     try:
-        text = transcribe_audio(content, mime_type=file.content_type or "audio/webm")
+        stt_result = transcribe_audio(content, mime_type=file.content_type or "audio/webm")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {e}")
 
-    result = await task_manager.handle_utterance(text, hub.broadcast)
-    return {"transcript": text, "result": result}
+    text = stt_result.get("text", "")
+    stt_language = stt_result.get("language", "en")
+
+    result = await task_manager.handle_utterance(text, hub.broadcast, stt_language=stt_language)
+    return {"transcript": text, "language": stt_language, "result": result}
 
 
 class TextCommand(BaseModel):
@@ -117,10 +136,14 @@ class TextCommand(BaseModel):
 
 @app.post("/api/text-command")
 async def text_command(req: TextCommand):
-    """Bypass audio entirely -- handy for testing/demoing without a mic."""
+    """
+    Bypass audio entirely -- handy for testing/demoing without a mic.
+    Language defaults to "en" since typed text has no audio to detect from;
+    the LLM parse step will detect the actual language from the text.
+    """
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="text is required")
-    result = await task_manager.handle_utterance(req.text, hub.broadcast)
+    result = await task_manager.handle_utterance(req.text, hub.broadcast, stt_language="und")
     return {"transcript": req.text, "result": result}
 
 
@@ -128,6 +151,7 @@ async def text_command(req: TextCommand):
 async def reset():
     task_manager.reset()
     await hub.broadcast(events.state_changed(None, "IDLE"))
+    await hub.broadcast(events.metrics_updated(dict(task_manager._m)))
     return {"status": "reset"}
 
 
@@ -153,6 +177,7 @@ async def ws_endpoint(websocket: WebSocket):
         task_manager.current_task_id,
         current.state.value if current else "IDLE",
     ))
+    await websocket.send_json(events.metrics_updated(dict(task_manager._m)))
 
     try:
         while True:
@@ -167,10 +192,18 @@ async def ws_endpoint(websocket: WebSocket):
             elif action == "reset":
                 task_manager.reset()
                 await hub.broadcast(events.state_changed(None, "IDLE"))
+                await hub.broadcast(events.metrics_updated(dict(task_manager._m)))
 
             elif action == "start_listening":
                 voice_manager.start_listening()
                 await hub.broadcast(events.state_changed(task_manager.current_task_id, "LISTENING"))
+
+            elif action == "approval":
+                # User approved or rejected the agent's recommendation.
+                # approved=True  → agent opens product URL
+                # approved=False → agent acknowledges and waits for refinement
+                approved = bool(data.get("approved", False))
+                await task_manager.handle_approval(approved, hub.broadcast)
 
             else:
                 await websocket.send_json({"type": "error", "message": f"Unknown action: {action}"})
@@ -184,7 +217,7 @@ async def ws_endpoint(websocket: WebSocket):
 
 if __name__ == "__main__":
     import uvicorn
-    host = os.getenv("HOST", "127.0.0.1")
+    host = os.getenv("HOST", "0.0.0.0")
     port = int(os.getenv("PORT", "8000"))
     # Windows + Playwright needs ProactorEventLoop for subprocess support;
     # uvicorn 0.36+ ignores asyncio.set_event_loop_policy(), so we pass the

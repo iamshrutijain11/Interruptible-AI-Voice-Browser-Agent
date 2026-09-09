@@ -16,6 +16,7 @@ Person 3 never needs to touch this file directly.
 """
 
 import os
+import sys
 import asyncio
 from typing import Optional
 
@@ -28,22 +29,37 @@ class BrowserManager:
         self._browser: Optional[Browser] = None
         self._lock = asyncio.Lock()
 
+    @staticmethod
+    def _is_headless() -> bool:
+        headless_env = os.getenv("HEADLESS")
+        if headless_env is not None:
+            return headless_env.lower() == "true"
+        # Always headless on Linux / Cloud containers unless explicitly told otherwise
+        return True if sys.platform != "win32" else False
+
     async def start(self) -> None:
         async with self._lock:
             if self._browser is not None:
                 return
-            headless = os.getenv("HEADLESS", "false").lower() == "true"
+            headless = self._is_headless()
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
                 headless=headless,
-                args=["--start-maximized"],
+                args=[
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-blink-features=AutomationControlled",
+                    "--start-maximized",
+                ],
             )
 
     async def new_context(self) -> BrowserContext:
         if self._browser is None:
             await self.start()
 
-        headless = os.getenv("HEADLESS", "false").lower() == "true"
+        headless = self._is_headless()
+
         context = await self._browser.new_context(
             viewport={"width": 1280, "height": 900} if headless else None,
             no_viewport=not headless,
@@ -52,8 +68,8 @@ class BrowserManager:
                 "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             ),
         )
-        context.set_default_navigation_timeout(20000)
-        context.set_default_timeout(8000)
+        context.set_default_navigation_timeout(12000)
+        context.set_default_timeout(6000)
         return context
 
     async def shutdown(self) -> None:

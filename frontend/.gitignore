@@ -7,10 +7,9 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# Dependencies and package manifests
+# Dependencies
 node_modules/
-package.json
-package-lock.json
+
 
 # Production build output
 dist/
