@@ -92,17 +92,17 @@ def get_parallel_sites_for_query(query: str) -> list[str]:
         if store in q_lower:
             return [store, "amazon"]
 
-    # 1. Beauty / Cosmetics signals -> Amazon + Snapdeal (fastest live multi-store pair)
+    # 1. Beauty / Cosmetics signals -> Nykaa + Amazon
     if _matches(BEAUTY_KEYWORDS):
-        return ["amazon", "snapdeal"]
+        return ["nykaa", "amazon"]
 
-    # 2. Fashion / Apparel signals -> Amazon + Snapdeal
+    # 2. Fashion / Apparel signals -> Myntra + Amazon
     if _matches(FASHION_KEYWORDS):
-        return ["amazon", "snapdeal"]
+        return ["myntra", "amazon"]
 
-    # 3. Budget signals (< 500) -> Amazon + Snapdeal
+    # 3. Budget signals (< 500) -> Meesho + Snapdeal
     if _is_budget(q_lower):
-        return ["amazon", "snapdeal"]
+        return ["meesho", "snapdeal"]
 
     # 4. Electronics / Tech -> Amazon + Snapdeal
     if _matches(ELECTRONICS_TECH_KEYWORDS):
