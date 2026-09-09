@@ -196,18 +196,25 @@ class TaskManager:
         # ── Step 1: UNDERSTAND ───────────────────────────────────────────────
         new_task_id = self._new_task_id()
         plan = self._make_plan()
-        is_replan = old_task_id is not None
+        old_task = self.tasks.get(old_task_id) if old_task_id else None
+        is_replan = bool(
+            old_task and old_task.state not in (
+                TaskState.COMPLETED, TaskState.CANCELLED, TaskState.ERROR, TaskState.INTERRUPTED
+            )
+        )
         if is_replan:
             self._m["replans"] += 1
-
-        # Interrupt old task before registering new one
-        if old_task_id:
+            # Interrupt old active task before registering new one
             await self._interrupt(old_task_id, new_task_id, broadcast, running_step)
+        elif old_task_id:
+            browser_cancel_task(old_task_id)
+
+        prior = self._last_intent if is_replan else None
 
         self.tasks[new_task_id] = Task(
             task_id=new_task_id,
             query="...",  # updated after understand step
-            constraints=self._last_intent.constraints if self._last_intent else
+            constraints=prior.constraints if prior else
                         __import__("models").Constraints(),
             state=TaskState.THINKING,
             plan=plan,
@@ -228,7 +235,7 @@ class TaskManager:
         await self._step_start(new_task_id, "understand", broadcast,
                                "Parsing your intent with LLM")
 
-        intent = await agent.parse_utterance(text, self._last_intent,
+        intent = await agent.parse_utterance(text, prior,
                                              stt_language=stt_language)
         self._last_intent = intent
         detected_lang = intent.detected_language or "en"
@@ -400,6 +407,8 @@ class TaskManager:
             await self._metric(broadcast, activity="completed", current_action="Search finished — no products found")
             await self._emit_state(new_task_id, TaskState.COMPLETED, broadcast)
             await broadcast(events.task_completed(new_task_id))
+            self._last_intent = None
+            self.current_task_id = None
             return result
 
         await self._emit_state(new_task_id, TaskState.AWAITING_APPROVAL, broadcast)
@@ -480,6 +489,8 @@ class TaskManager:
                            current_action="Task completed successfully")
         await self._emit_state(new_task_id, TaskState.COMPLETED, broadcast)
         await broadcast(events.task_completed(new_task_id))
+        self._last_intent = None
+        self.current_task_id = None
         return result
 
     # ──────────────────────────────────────────── approval handler
