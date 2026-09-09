@@ -10,10 +10,10 @@ When a user speaks while the agent is browsing or speaking, the agent immediatel
 
 | | Link |
 |---|---|
-| 🌐 **Live Frontend** | [_Coming soon — add your Vercel URL here_](#) |
-| ⚙️ **Live Backend API** | [_Coming soon — add your Render/Railway URL here_](#) |
+| 🌐 **Live Frontend** | https://interruptible-ai-voice-browser-agen.vercel.app/ |
+| ⚙️ **Live Backend API** | https://interruptible-ai-voice-browser-agent.onrender.com |
 | 🎥 **Demo Video (4–5 min)** | [_Coming soon — add your recorded demo link here_](#) |
-| 📦 **Source Code** | [github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent](https://github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent) |
+| 📦 **Source Code** | (https://github.com/iamshrutijain11/Interruptible-AI-Voice-Browser-Agent) |
 
 ---
 
