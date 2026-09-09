@@ -63,11 +63,22 @@ class BrowserManager:
         context = await self._browser.new_context(
             viewport={"width": 1280, "height": 900} if headless else None,
             no_viewport=not headless,
+            locale="en-IN",
+            timezone_id="Asia/Kolkata",
             user_agent=(
                 "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
                 "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"
             ),
+            extra_http_headers={
+                "Accept-Language": "en-IN,en-GB;q=0.9,en-US;q=0.8,en;q=0.7",
+                "Sec-Ch-Ua": '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+                "Sec-Ch-Ua-Mobile": "?0",
+                "Sec-Ch-Ua-Platform": '"Windows"',
+            }
         )
+        await context.add_init_script("""
+            Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        """)
         context.set_default_navigation_timeout(12000)
         context.set_default_timeout(6000)
         return context

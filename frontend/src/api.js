@@ -7,9 +7,22 @@
  * one-time snapshot.
  */
 
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '0.0.0.0' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.endsWith('.local')
+)
+
+const localHost = typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== '0.0.0.0'
+  ? window.location.hostname
+  : 'localhost'
+
 const API_URL = import.meta.env.VITE_API_URL || (
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:8000'
+  isLocal
+    ? `http://${localHost}:8000`
     : 'https://interruptible-ai-voice-browser-agent.onrender.com'
 )
 

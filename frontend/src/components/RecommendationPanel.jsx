@@ -81,40 +81,49 @@ export default function RecommendationPanel({
         </div>
       </div>
 
-      {/* Top Pick */}
-      <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 space-y-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 mb-1">
-              <span className="inline-flex items-center gap-1 rounded-md bg-amber-500
-                px-1.5 py-0.5 text-[10px] font-bold text-base-950">
-                ★ Top Pick
-              </span>
-              {recommendation.top_pick_site && (
-                <SiteChip site={recommendation.top_pick_site} />
-              )}
+      {/* Top Pick or No Results */}
+      {recommendation.top_pick_name ? (
+        <div className="rounded-xl border border-violet-500/20 bg-violet-500/5 p-4 space-y-2">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 mb-1">
+                <span className="inline-flex items-center gap-1 rounded-md bg-amber-500
+                  px-1.5 py-0.5 text-[10px] font-bold text-base-950">
+                  ★ Top Pick
+                </span>
+                {recommendation.top_pick_site && (
+                  <SiteChip site={recommendation.top_pick_site} />
+                )}
+              </div>
+              <p className="text-sm font-semibold text-gray-100 leading-snug line-clamp-2">
+                {recommendation.top_pick_name}
+              </p>
             </div>
-            <p className="text-sm font-semibold text-gray-100 leading-snug line-clamp-2">
-              {recommendation.top_pick_name}
-            </p>
+            {recommendation.top_pick_price && (
+              <span className="text-xl font-bold text-amber-400 shrink-0 tabular-nums">
+                {recommendation.top_pick_price}
+              </span>
+            )}
           </div>
-          {recommendation.top_pick_price && (
-            <span className="text-xl font-bold text-amber-400 shrink-0 tabular-nums">
-              {recommendation.top_pick_price}
-            </span>
+
+          {/* Reason */}
+          {recommendation.reason && (
+            <p className="text-xs text-gray-300 leading-relaxed border-t border-violet-500/10 pt-2">
+              💡 {recommendation.reason}
+            </p>
           )}
         </div>
-
-        {/* Reason */}
-        {recommendation.reason && (
-          <p className="text-xs text-gray-300 leading-relaxed border-t border-violet-500/10 pt-2">
-            💡 {recommendation.reason}
+      ) : (
+        <div className="rounded-xl border border-base-800 bg-base-900/60 p-4 text-center space-y-1">
+          <p className="text-sm font-semibold text-gray-300">No matching products found</p>
+          <p className="text-xs text-gray-500">
+            {recommendation.reason || 'Try searching with different keywords or widening your price filters.'}
           </p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Score breakdown for top pick */}
-      {topScore && (
+      {topScore && recommendation.top_pick_name && (
         <div className="space-y-2">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500">
             Score Breakdown
@@ -140,7 +149,7 @@ export default function RecommendationPanel({
       )}
 
       {/* Approval buttons */}
-      {awaitingApproval && (
+      {awaitingApproval && recommendation.top_pick_name && (
         <div className="border-t border-base-800/80 pt-4 space-y-2">
           <p className="text-xs text-center text-gray-400 font-medium">
             ✋ Agent is waiting — approve to open the product, or reject to refine

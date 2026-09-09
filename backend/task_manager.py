@@ -374,6 +374,16 @@ class TaskManager:
 
         # ── Step 7: APPROVE ──────────────────────────────────────────────────
         running_step = "approve"
+        if not results or not recommendation or not recommendation.top_pick_name:
+            await self._step_start(new_task_id, "approve", broadcast, "No products to approve")
+            await self._step_done(new_task_id, "approve", broadcast, "Completed — 0 matches")
+            await self._step_start(new_task_id, "act", broadcast, "No action required")
+            await self._step_done(new_task_id, "act", broadcast, "No action required")
+            await self._metric(broadcast, activity="completed", current_action="Search finished — no products found")
+            await self._emit_state(new_task_id, TaskState.COMPLETED, broadcast)
+            await broadcast(events.task_completed(new_task_id))
+            return result
+
         await self._emit_state(new_task_id, TaskState.AWAITING_APPROVAL, broadcast)
         await self._metric(broadcast, activity="waiting_approval",
                            current_action="Waiting for your approval")

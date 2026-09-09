@@ -7,9 +7,22 @@
  * backend for the exact shapes.
  */
 
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.hostname === '0.0.0.0' ||
+  window.location.hostname.startsWith('192.168.') ||
+  window.location.hostname.startsWith('10.') ||
+  window.location.hostname.endsWith('.local')
+)
+
+const localHost = typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== '0.0.0.0'
+  ? window.location.hostname
+  : 'localhost'
+
 const WS_URL = import.meta.env.VITE_WS_URL || (
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'ws://localhost:8000/ws'
+  isLocal
+    ? `ws://${localHost}:8000/ws`
     : 'wss://interruptible-ai-voice-browser-agent.onrender.com/ws'
 )
 
