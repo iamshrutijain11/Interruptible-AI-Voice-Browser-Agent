@@ -234,10 +234,10 @@ export default function App() {
                 <VoiceButton
                   onRecordingStart={() => setState('LISTENING')}
                   onRecordingSent={(res) => { if (res?.transcript) setUserText(res.transcript) }}
-                  onSpeechText={(text) => {
+                  onSpeechText={(text, lang) => {
                     if (text?.trim()) {
                       setUserText(text.trim())
-                      socketRef.current?.sendUtterance(text.trim())
+                      socketRef.current?.sendUtterance(text.trim(), lang)
                     }
                   }}
                   onError={(msg) => setErrorMsg(msg)}
