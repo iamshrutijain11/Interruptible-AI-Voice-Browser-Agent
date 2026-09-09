@@ -317,8 +317,18 @@ class TaskManager:
         if isinstance(sources, str):
             sources = [sources]
 
+        is_fallback = bool(result.get("is_fallback", False))
+        warning = result.get("warning")
+        source = result.get("source")
+
         self.tasks[new_task_id].results = results
-        await broadcast(events.browser_result(new_task_id, results))
+        await broadcast(events.browser_result(
+            new_task_id,
+            results,
+            is_fallback=is_fallback,
+            warning=warning,
+            source=source,
+        ))
         self._m["records_extracted"]  += len(results)
         self._m["pages_analyzed"]     += len(results)
         self._m["actions_performed"]  += 1

@@ -542,30 +542,23 @@ def _get_fallback_catalog_products(query: str, min_price: Optional[float] = None
              "image": "https://m.media-amazon.com/images/I/71aFt4+OTOL._AC_UY436_FMwebp_QL65_.jpg", "rating": 4.6, "review_count": 38000, "is_bestseller": True, "site": "Snapdeal"},
         ]
 
-    # ── Generic fallback — use a specific search query (narrowed by product name, not just category)
+    # ── Unknown category: NEVER fabricate templated products.
+    # If live scraping failed and no curated offline demo exists, return empty list.
     else:
-        q_clean = query.strip().title() or "Trending Product"
-        q_short = q_clean[:30] if len(q_clean) > 30 else q_clean
-        items = [
-            {"name": f"Top Rated {q_short} - Premium Quality Edition", "price": "₹999", "price_value": 999,
-             "url": f"https://www.amazon.in/s?k={quote_plus(query)}&ref=nb_sb_noss",
-             "image": "https://m.media-amazon.com/images/I/61Biwu25a5L._AC_UL960_FMwebp_QL65_.jpg", "rating": 4.4, "review_count": 1250, "is_bestseller": True, "site": "Amazon"},
-            {"name": f"Best Value {q_short} - High Performance Pack", "price": "₹649", "price_value": 649,
-             "url": f"https://www.snapdeal.com/search?keyword={quote_plus(query)}&sort=rlvncy",
-             "image": "https://m.media-amazon.com/images/I/61k8n5bQ2TL._AC_UL960_FMwebp_QL65_.jpg", "rating": 4.1, "review_count": 830, "is_bestseller": False, "site": "Snapdeal"},
-            {"name": f"Popular Choice {q_short} - Everyday Essential", "price": "₹499", "price_value": 499,
-             "url": f"https://www.amazon.in/s?k={quote_plus(query)}&ref=nb_sb_noss",
-             "image": "https://m.media-amazon.com/images/I/61y8B3-3vEL._AC_UL960_FMwebp_QL65_.jpg", "rating": 4.2, "review_count": 980, "is_bestseller": False, "site": "Amazon"},
-        ]
+        items = []
+
+    for p in items:
+        p["is_fallback"] = True
+        p["source"] = "local_fallback_demo_page"
 
     # Filter with user price constraints if specified
     filtered = items
     if min_price is not None:
-        filtered = [p for p in filtered if p["price_value"] >= min_price]
+        filtered = [p for p in filtered if p.get("price_value", 0) >= min_price]
     if max_price is not None:
-        filtered = [p for p in filtered if p["price_value"] <= max_price]
+        filtered = [p for p in filtered if p.get("price_value", 0) <= max_price]
 
-    return filtered or items
+    return filtered
 
 
 async def search_products(query: str, task_id: str, constraints: Optional[Any] = None) -> Dict[str, Any]:
@@ -617,6 +610,8 @@ async def search_products(query: str, task_id: str, constraints: Optional[Any] =
                 disp = SITE_DISPLAY_NAMES.get(site_name, site_name.capitalize())
                 for p in prods:
                     p["site"] = disp
+                    p["is_fallback"] = False
+                    p["source"] = "live_browser"
                 logger.info("[search] Site %s returned %d products", site_name, len(prods))
                 return prods
             except Exception as err:
@@ -639,7 +634,7 @@ async def search_products(query: str, task_id: str, constraints: Optional[Any] =
         }
         site_raw_results: Dict[str, list] = {}
         loop = asyncio.get_event_loop()
-        deadline = loop.time() + 8.0
+        deadline = loop.time() + 12.0
 
         while scrape_tasks and loop.time() < deadline:
             remaining_time = max(0.1, deadline - loop.time())
@@ -703,23 +698,32 @@ async def search_products(query: str, task_id: str, constraints: Optional[Any] =
                 if len(ranked) >= MAX_RESULTS:
                     break
 
+        is_fallback = False
+        warning_msg = None
+
         if not ranked:
-            logger.info("[search] Live scraping returned 0 products. Activating verified multi-store catalog fallback for %r", query)
+            logger.info("[search] Live scraping returned 0 products. Checking local offline fallback demo catalog for %r", query)
             ranked = _get_fallback_catalog_products(query, min_price, max_price)
             if ranked:
+                is_fallback = True
+                warning_msg = "Live browser search timed out or encountered anti-bot verification. Displaying local offline demo catalog."
                 filtered_by_site = {}
                 for p in ranked:
-                    s = p.get("site", "Amazon")
+                    s = p.get("site", "Demo Catalog")
                     filtered_by_site.setdefault(s, []).append(p)
+            else:
+                warning_msg = f"No products found matching '{query}' on live shopping sites, and no offline demo items exist for this category."
 
         sources_found = list(filtered_by_site.keys())
-        source_label = ", ".join(sources_found) if sources_found else (sites_to_search[0] if sites_to_search else "live")
+        source_label = "local_fallback_demo_page" if is_fallback else (", ".join(sources_found) if sources_found else (sites_to_search[0] if sites_to_search else "live"))
 
         result: Dict[str, Any] = {
             "task_id": task_id,
             "status": "completed" if ranked else "completed_empty",
             "source": source_label,
             "sources": sources_found,
+            "is_fallback": is_fallback,
+            "warning": warning_msg,
             "query": query,
             "parsed_constraints": {
                 "min_price": min_price,

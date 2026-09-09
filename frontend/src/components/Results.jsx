@@ -23,6 +23,8 @@ export default function Results({
   onFilterApply,
   onFilterClear,
   activeRange,
+  isFallback,
+  warning,
 }) {
   const [minVal, setMinVal] = useState('')
   const [maxVal, setMaxVal] = useState('')
@@ -44,12 +46,36 @@ export default function Results({
     setSelectedStore((prev) => (prev === store ? null : store))
   }
 
-  const sitesFound = Array.from(new Set((results || []).map((r) => r.site).filter(Boolean)))
+  // Assertion guard: only render items with valid name
+  const validResults = (results || []).filter((r) => Boolean(r && r.name && r.name.trim()))
 
-  // Apply store filter on top of results
+  const isFallbackMode = Boolean(isFallback || validResults.some((r) => r.is_fallback))
+
+  const sitesFound = Array.from(new Set(validResults.map((r) => r.site).filter(Boolean)))
+
+  // Apply store filter on top of valid results
   const displayResults = selectedStore
-    ? (results || []).filter((r) => siteKey(r.site) === siteKey(selectedStore))
-    : (results || [])
+    ? validResults.filter((r) => siteKey(r.site) === siteKey(selectedStore))
+    : validResults
+
+  const fallbackBanner = isFallbackMode && (
+    <div className="mb-4 rounded-xl border border-amber-500/50 bg-amber-500/10 p-3.5 text-amber-200 flex items-start gap-3 shadow-md shadow-amber-500/5 animate-fadeInUp">
+      <span className="text-xl leading-none mt-0.5" role="img" aria-label="warning">⚠️</span>
+      <div className="flex-1">
+        <div className="flex items-center gap-2 flex-wrap">
+          <p className="text-xs font-bold uppercase tracking-wider text-amber-400">
+            Local Fallback Demo Mode
+          </p>
+          <span className="rounded bg-amber-500/20 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+            Offline Demo Data
+          </span>
+        </div>
+        <p className="text-xs text-amber-200/90 mt-1 leading-relaxed">
+          {warning || "Live browser scraping timed out or encountered anti-bot protection. Displaying local demo catalog items for demonstration purposes."}
+        </p>
+      </div>
+    </div>
+  )
 
   const filterBar = (
     <div className="flex flex-wrap items-center justify-between gap-3 bg-base-900/60 border border-base-800/80 rounded-xl p-3 mb-4 backdrop-blur-sm">
@@ -148,9 +174,10 @@ export default function Results({
     </div>
   )
 
-  if (!results || results.length === 0) {
+  if (validResults.length === 0) {
     return (
       <div>
+        {fallbackBanner}
         {activeRange && filterBar}
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-base-800 bg-base-900/30 px-4 py-12 text-center">
           <svg
@@ -167,7 +194,7 @@ export default function Results({
             <line x1="12" y1="22.08" x2="12" y2="12" />
           </svg>
           <p className="text-sm text-gray-500 max-w-sm">
-            {emptyMessage || 'Results will appear here once the browser finishes searching.'}
+            {warning || emptyMessage || 'Results will appear here once the browser finishes searching.'}
           </p>
         </div>
       </div>
@@ -176,6 +203,7 @@ export default function Results({
 
   return (
     <div>
+      {fallbackBanner}
       {filterBar}
 
       {/* Store filter active notice */}
@@ -194,6 +222,7 @@ export default function Results({
         {displayResults.map((item, i) => {
           const hasUrl = Boolean(item.url)
           const isTopPick = !selectedStore && i === 0
+          const isItemFallback = Boolean(item.is_fallback || isFallbackMode)
 
           const cardContent = (
             <>
@@ -219,6 +248,14 @@ export default function Results({
 
                 {/* Badge Stack */}
                 <div className="absolute top-2.5 left-2.5 flex flex-col items-start gap-1 z-10">
+                  {/* Fallback label if item comes from offline catalog */}
+                  {isItemFallback && (
+                    <div className="flex items-center gap-1 rounded bg-amber-500/90 text-base-950 px-2 py-0.5 text-[9px] font-extrabold shadow-md uppercase tracking-wider">
+                      <span>⚠️ Demo Catalog</span>
+                    </div>
+                  )}
+
+                  {/* Store badge */}
                   {item.site && (
                     <div
                       className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-bold shadow-md uppercase tracking-wider ${
