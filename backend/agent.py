@@ -213,6 +213,15 @@ def parse_utterance_mock(
     query_en = " ".join(words_en) or product_phrase
 
     effective_lang = stt_language if stt_language not in ("und", "") else "en"
+    if any(0x0900 <= ord(c) <= 0x097F for c in cleaned):
+        effective_lang = "hi"
+    elif any(0x0600 <= ord(c) <= 0x06FF for c in cleaned):
+        effective_lang = "ar"
+    elif any((0x3040 <= ord(c) <= 0x30FF) or (0x4E00 <= ord(c) <= 0x9FFF) for c in cleaned):
+        effective_lang = "ja"
+    elif any(w in _INDIC_TRANSLITERATIONS for w in cleaned.lower().split()):
+        effective_lang = "hi"
+
     return ParsedIntent(
         intent="product_search",
         query=product_phrase,

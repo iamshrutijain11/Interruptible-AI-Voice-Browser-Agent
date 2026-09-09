@@ -123,6 +123,20 @@ export default function App() {
       if ('speechSynthesis' in window && ev.text) {
         window.speechSynthesis.cancel()
         const utterance = new SpeechSynthesisUtterance(ev.text)
+        if (ev.language) {
+          const langMap = {
+            hi: 'hi-IN',
+            es: 'es-ES',
+            fr: 'fr-FR',
+            de: 'de-DE',
+            it: 'it-IT',
+            pt: 'pt-BR',
+            ar: 'ar-SA',
+            ja: 'ja-JP',
+            en: 'en-IN',
+          }
+          utterance.lang = langMap[ev.language] || ev.language
+        }
         utterance.rate = 1.0
         window.speechSynthesis.speak(utterance)
       }
@@ -177,7 +191,7 @@ export default function App() {
   function handleTypedSubmit(e) {
     e.preventDefault()
     if (!typedText.trim()) return
-    socketRef.current?.sendUtterance(typedText.trim())
+    socketRef.current?.sendUtterance(typedText.trim(), detectedLanguage || 'und')
     setTypedText('')
   }
 

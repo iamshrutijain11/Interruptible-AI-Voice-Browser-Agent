@@ -48,8 +48,8 @@ def browser_result(
     }
 
 
-def speech_started(task_id: str, text: str) -> dict:
-    return {"type": "speech.started", "task_id": task_id, "text": text}
+def speech_started(task_id: str, text: str, language: str = "en") -> dict:
+    return {"type": "speech.started", "task_id": task_id, "text": text, "language": language}
 
 
 def task_completed(task_id: str) -> dict:
